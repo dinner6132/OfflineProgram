@@ -82,6 +82,7 @@ BOOL isBeaconWithUUIDMajorMinor(CLBeacon *beacon, NSString *UUIDString, CLBeacon
 @implementation ESTTableViewCell
 
 
+
 - (instancetype)initWithStyle:(UITableViewCellStyle)style reuseIdentifier:(NSString *)reuseIdentifier
 {
     self = [super initWithStyle:UITableViewCellStyleSubtitle reuseIdentifier:reuseIdentifier];
@@ -99,21 +100,28 @@ static int dir_count =1;
 static NSString *dBm_set = @"4dBm";
 static NSString *direction_dir = @"東";
 
+static float iB_R[10];  //beacon數量
+static int average_count = 0;
+static float signal_buffer[4][15];
+static float iB_avg[4];
+
 @implementation ViewController
 
 
 - (IBAction)button01:(id)sender {
-//    [self WriteToFile];
 
+    file_count = 0;
+    
     if ([timer isValid]) {
         [timer invalidate];
         self.ScanStatus.text = [NSString stringWithFormat:@"Stop scan"];
     }else{
         timer = [NSTimer scheduledTimerWithTimeInterval:1.0
                                                  target:self
-                                               selector:@selector(WriteToFile)
+                                               selector:@selector(SignalMethod)
                                                userInfo:nil
                                                 repeats:YES];
+        
         self.ScanStatus.text = [NSString stringWithFormat:@"Scanning"];
     }
 
@@ -121,8 +129,9 @@ static NSString *direction_dir = @"東";
 
 - (IBAction)button02:(id)sender {
     dir_count ++;
+    average_count = 0;
+    
     self.dirTextLabel.text = [NSString stringWithFormat:@"%d",dir_count];
-    file_count = 1;
     self.fileTextLabel.text = @"準備開始";
 }
 
@@ -172,6 +181,199 @@ static NSString *direction_dir = @"東";
             break;
     }
     
+}
+
+-(void)locationManager:(CLLocationManager *)manager didUpdateHeading:(CLHeading *)newHeading{
+    
+    self.currentHeading = newHeading;
+    NSLog(@"%d",(int)newHeading.magneticHeading);
+    
+    if (newHeading.magneticHeading >= 315 || newHeading.magneticHeading < 45 ) {
+        self.HeadingTextLabel.text = @"北";
+    }else if( newHeading.magneticHeading >=45 && newHeading.magneticHeading < 135 ){
+        self.HeadingTextLabel.text = @"東";
+    }else if( newHeading.magneticHeading >= 135 && newHeading.magneticHeading < 225 ){
+        self.HeadingTextLabel.text = @"南";
+    }else if( newHeading.magneticHeading >= 225 && newHeading.magneticHeading < 315 ){
+        self.HeadingTextLabel.text = @"西";
+    }
+}
+
+-(void)SignalMethod {
+    
+    for (int i=0; i < 9; i++) {
+        iB_R[i] = -99;
+    }
+    
+    for (int i=0; i < [self.beaconsArray count]; i++) {
+        CLBeacon *beacon = [self.beaconsArray objectAtIndex:i];
+        
+        if (isBeaconWithUUIDMajorMinor(beacon, BEACON_1_UUID, BEACON_1_MAJOR, BEACON_1_MINOR)) {
+            
+            iB_R[0] = beacon.rssi;
+            //NSLog(@"ib1=%f",iB_R[0]);
+            
+        }else if (isBeaconWithUUIDMajorMinor(beacon, BEACON_2_UUID, BEACON_2_MAJOR, BEACON_2_MINOR)) {
+            
+            iB_R[1] = beacon.rssi;
+            //NSLog(@"ib2=%f",iB_R[1]);
+            
+        }else if (isBeaconWithUUIDMajorMinor(beacon, BEACON_3_UUID, BEACON_3_MAJOR, BEACON_3_MINOR)) {
+            
+            iB_R[2] = beacon.rssi;
+            //NSLog(@"ib3=%f",iB_R[2]);
+            
+        }else if (isBeaconWithUUIDMajorMinor(beacon, BEACON_4_UUID, BEACON_4_MAJOR, BEACON_4_MINOR)) {
+            
+            iB_R[3] = beacon.rssi;
+            //NSLog(@"ib4=%f",iB_R[3]);
+            
+        }else if (isBeaconWithUUIDMajorMinor(beacon, BEACON_5_UUID, BEACON_5_MAJOR, BEACON_5_MINOR)) {
+            
+            iB_R[4] = beacon.rssi;
+            //NSLog(@"ib5=%f",iB_R[4]);
+            
+        }else if (isBeaconWithUUIDMajorMinor(beacon, BEACON_6_UUID, BEACON_6_MAJOR, BEACON_6_MINOR)) {
+            
+            iB_R[5] = beacon.rssi;
+            //NSLog(@"ib6=%f",iB_R[5]);
+            
+        }else if (isBeaconWithUUIDMajorMinor(beacon, BEACON_7_UUID, BEACON_7_MAJOR, BEACON_7_MINOR)) {
+            
+            iB_R[6] = beacon.rssi;
+            //NSLog(@"ib7=%f",iB_R[6]);
+            
+        }else if (isBeaconWithUUIDMajorMinor(beacon, BEACON_8_UUID, BEACON_8_MAJOR, BEACON_8_MINOR)) {
+            
+            iB_R[7] = beacon.rssi;
+            //NSLog(@"ib8=%f",iB_R[7]);
+            
+        }else if (isBeaconWithUUIDMajorMinor(beacon, BEACON_9_UUID, BEACON_9_MAJOR, BEACON_9_MINOR)) {
+            
+            iB_R[8] = beacon.rssi;
+            //NSLog(@"ib9=%f",iB_R[8]);
+            
+        }else if (isBeaconWithUUIDMajorMinor(beacon, BEACON_10_UUID, BEACON_10_MAJOR, BEACON_10_MINOR)) {
+            
+            iB_R[9] = beacon.rssi;
+            //NSLog(@"ib10=%f",iB_R[9]);
+            
+        }
+    }
+    
+    for (int i=0; i < 9; i++) {
+        if (iB_R[i] == 0) {
+            iB_R[i] = -99;
+        }
+    }
+    
+    /* ------------------------------------------------------------ */
+    
+    //訊號判斷
+    if(iB_R[1] >= -90 && iB_R[3] >= -90 && iB_R[6] >= -90 && iB_R[8] >= -90) {
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [self AverageMethod];
+        });
+    }
+}
+
+-(void)AverageMethod {
+    float sg_temp[4];
+    
+    if(average_count < 15){
+        signal_buffer[0][average_count] = iB_R[1];
+        signal_buffer[1][average_count] = iB_R[3];
+        signal_buffer[2][average_count] = iB_R[6];
+        signal_buffer[3][average_count] = iB_R[8];
+        average_count++;
+        self.fileTextLabel.text = [NSString stringWithFormat:@"%d",average_count];
+    }else{
+        
+        sg_temp[0] = 0; sg_temp[1] = 0; sg_temp[2] = 0; sg_temp[3] = 0;
+        for (int i=5; i<15; i++) {
+            sg_temp[0] += signal_buffer[0][i];
+            sg_temp[1] += signal_buffer[1][i];
+            sg_temp[2] += signal_buffer[2][i];
+            sg_temp[3] += signal_buffer[3][i];
+        }
+        
+        sg_temp[0] = sg_temp[0]/10;
+        sg_temp[1] = sg_temp[1]/10;
+        sg_temp[2] = sg_temp[2]/10;
+        sg_temp[3] = sg_temp[3]/10;
+        
+        iB_avg[0] = sg_temp[0];
+        iB_avg[1] = sg_temp[1];
+        iB_avg[2] = sg_temp[2];
+        iB_avg[3] = sg_temp[3];
+        
+        [timer invalidate];
+        timer = nil;
+        
+        self.ScanStatus.text = [NSString stringWithFormat:@"Stop scan"];
+        
+        [self WriteToFile];
+    }
+    
+}
+
+-(void)WriteToFile {
+    
+    NSFileManager *fm = [NSFileManager defaultManager];
+    //Create 目錄
+    NSString *dir;
+    dir = [NSHomeDirectory() stringByAppendingFormat:@"/Documents/%@/%@/point_%d",dBm_set,direction_dir,dir_count];
+    
+    //Create file
+    NSString *file = [dir stringByAppendingFormat:@"/point_data.txt"];
+    NSError *error;
+    NSString *filedata;
+    NSFileHandle *update = [NSFileHandle fileHandleForWritingAtPath:file];
+    NSData *data;
+    
+    BOOL success = [fm createDirectoryAtPath:
+                    dir withIntermediateDirectories:YES attributes:nil error:&error];
+    if (success) {
+        NSLog(@"目錄建立成功");
+    }else {
+        NSLog(@"目錄建立失敗");
+    }
+    
+    NSString *strDate = [NSString stringWithFormat:@"point, error \n"];
+    data = [strDate dataUsingEncoding:NSUTF8StringEncoding];
+    //寫入檔案
+    for (int i=0; i<4; i++) {
+        
+        filedata = [NSString stringWithFormat:@"iB[%d] , %f\n",i,iB_avg[i]];
+        data = [filedata dataUsingEncoding:NSUTF8StringEncoding];
+        [update seekToEndOfFile];
+        [update writeData:data];
+
+    }
+    
+    
+    if ([fm fileExistsAtPath:file])  {
+        NSLog(@"檔案存在，寫入檔案");
+        for (int i=0; i<4; i++) {
+            filedata = [NSString stringWithFormat:@"iB[%d] , %f\n",i,iB_avg[i]];
+            data = [filedata dataUsingEncoding:NSUTF8StringEncoding];
+            [update seekToEndOfFile];
+            [update writeData:data];
+        }
+        
+    }else{
+        filedata = [NSString stringWithFormat:@"ib[no] , avg-data\n"];
+        data = [filedata dataUsingEncoding:NSUTF8StringEncoding];
+        
+        NSLog(@"檔案不存在，新增檔案並寫入");
+        success = [fm createFileAtPath:file contents:data attributes:nil];
+        if (success) {
+            NSLog(@"Create File success");
+        }else{
+            NSLog(@"Create File ERROR");
+        }
+    }
+    [update closeFile];
 }
 
 
@@ -316,215 +518,6 @@ static NSString *direction_dir = @"東";
 - (void)didReceiveMemoryWarning {
     [super didReceiveMemoryWarning];
     // Dispose of any resources that can be recreated.
-}
-
-
--(void)TriangulationOfMethod {
-    
-    float x[[self.beaconsArray count]];
-    float y[[self.beaconsArray count]];
-    float d[[self.beaconsArray count]];
-    float temp = 0;
-    float Amat[2][2]; float Bmat[2][1]; float InrAmat[2][2]; float Solmat[2][1];
-    
-    //NSLog(@"count=%lu",(unsigned long)self.beaconsArray.count);
-    
-    for (int i=0; i < [self.beaconsArray count]; i++) {
-        CLBeacon *beacon = [self.beaconsArray objectAtIndex:i];
-        
-        if (isBeaconWithUUIDMajorMinor(beacon, BEACON_2_UUID, BEACON_2_MAJOR, BEACON_2_MINOR)) {
-            
-//            d[0] = beacon.accuracy; x[0] = 4.5; y[0] = 9;
-            d[0] = 10; x[0] = 0; y[0] = 1;
-            
-            if (d[0] == 0) {
-                d[0] = 100;
-            }
-            
-            //NSLog(@"original x[0]=%.1f , y[0]=%.1f d[0]=%.1f",x[0],y[0],d[0]);
-        }else if (isBeaconWithUUIDMajorMinor(beacon, BEACON_3_UUID, BEACON_3_MAJOR, BEACON_3_MINOR)) {
-            
-//            d[1] = beacon.accuracy; x[1] = 9; y[1] = 6;
-            d[1] = 5.1; x[1] = 15; y[1] = 2;
-            
-            if (d[1] == 0) {
-                d[1] = 100;
-            }
-            //NSLog(@"original x[1]=%.1f , y[1]=%.1f d[1]=%.1f",x[1],y[1],d[1]);
-        }else if (isBeaconWithUUIDMajorMinor(beacon, BEACON_4_UUID, BEACON_4_MAJOR, BEACON_4_MINOR)) {
-            
-//            d[2] = beacon.accuracy; x[2] = 4.5; y[2] = 0;
-            d[2] = 25; x[2] = 35; y[2] = 1;
-            
-            if (d[2] == 0) {
-                d[2] = 100;
-            }
-            //NSLog(@"original x[2]=%.1f , y[2]=%.1f d[2]=%.1f",x[2],y[2],d[2]);
-        }else if (isBeaconWithUUIDMajorMinor(beacon, BEACON_5_UUID, BEACON_5_MAJOR, BEACON_5_MINOR)) {
-            
-//            d[3] = beacon.accuracy; x[3] = 0; y[3] = 6;
-            d[3] = 5.1; x[3] = 15; y[3] = 0;
-            
-            if (d[3] == 0) {
-                d[3] = 100;
-            }
-            
-            //NSLog(@"original x[3]=%.1f , y[3]=%.1f d[3]=%.1f",x[3],y[3],d[3]);
-        }
-    }
-    //排序 由小到大 (4顆beacon)
-    for (int i=0; i< 4; i++) {
-        for (int j=0; j<4; j++) {
-            if (d[j] > d[i]) {
-                temp = d[j];
-                d[j] = d[i];
-                d[i] = temp;
-            }
-        }
-    }
-    //    for(int i = 0; i < [self.beaconsArray count]; i++ ) {
-    //        NSLog(@"x[%d]=%.1f y[%d]=%.1f ",i,x[i],i,y[i]);
-    //        NSLog(@"d[%d]=%.1f",i,d[i]);
-    //    }
-    
-    
-    Amat[0][0] = -2 * ( x[0] - x[1] );
-    Amat[0][1] = -2 * ( y[0] - y[1] );
-    Amat[1][0] = -2 * ( x[0] - x[2] );
-    Amat[1][1] = -2 * ( y[0] - y[2] );
-    Bmat[0][0] = -((x[0]*x[0])-(x[1]*x[1])+(y[0]*y[0])-(y[1]*y[1])-(d[0]*d[0])+(d[1]*d[1]));
-    Bmat[1][0] = -((x[0]*x[0])-(x[2]*x[2])+(y[0]*y[0])-(y[2]*y[2])-(d[0]*d[0])+(d[2]*d[2]));
-    InrAmat[0][0] = Amat[1][1];
-    InrAmat[0][1] = -Amat[0][1];
-    InrAmat[1][0] = -Amat[1][0];
-    InrAmat[1][1] = Amat[0][0];
-    
-    for(int i=0;i<2;i++){
-        for (int k=0; k<2; k++) {
-            InrAmat[i][k] = InrAmat[i][k] / (Amat[0][0] * Amat[1][1] - Amat[1][0] * Amat[0][1]);
-        }
-        for (int j=0; j<2; j++) {
-            Solmat[j][0] = InrAmat[j][0] * Bmat[0][0] + InrAmat[j][1] * Bmat[1][0];
-        }
-    }
-    x_value = Solmat[0][0];
-    y_value = Solmat[1][0];
-    
-//    NSLog(@"x= %.3f",x_value);
-//    NSLog(@"y= %.3f",y_value);
-//    NSLog(@"(%.3f,%.3f)",x_value,y_value);
-    
-//    self.x_label.text = [NSString stringWithFormat:@"%.3f",x_value];
-//    self.y_label.text = [NSString stringWithFormat:@"%.3f",y_value];
-    
-}
-
--(void)locationManager:(CLLocationManager *)manager didUpdateHeading:(CLHeading *)newHeading{
-    
-    self.currentHeading = newHeading;
-    NSLog(@"%d",(int)newHeading.magneticHeading);
-    
-    if (newHeading.magneticHeading >= 315 || newHeading.magneticHeading < 45 ) {
-        self.HeadingTextLabel.text = @"北";
-    }else if( newHeading.magneticHeading >=45 && newHeading.magneticHeading < 135 ){
-        self.HeadingTextLabel.text = @"東";
-    }else if( newHeading.magneticHeading >= 135 && newHeading.magneticHeading < 225 ){
-        self.HeadingTextLabel.text = @"南";
-    }else if( newHeading.magneticHeading >= 225 && newHeading.magneticHeading < 315 ){
-        self.HeadingTextLabel.text = @"西";
-    }
-    
-    
-    
-}
-
--(void)WriteToFile {
-    
-    NSFileManager *fm = [NSFileManager defaultManager];
-    //Create 目錄
-    NSString *dir;
-    /*if (self.currentHeading.magneticHeading >= 315 || self.currentHeading.magneticHeading < 45 ){
-        dir = [NSHomeDirectory() stringByAppendingFormat:@"/Documents/North/point_%d",dir_count];
-    }else if( self.currentHeading.magneticHeading >=45 && self.currentHeading.magneticHeading < 135 ){
-        dir = [NSHomeDirectory() stringByAppendingFormat:@"/Documents/East/point_%d",dir_count];
-    }else if( self.currentHeading.magneticHeading >= 135 && self.currentHeading.magneticHeading < 225 ){
-        dir = [NSHomeDirectory() stringByAppendingFormat:@"/Documents/South/point_%d",dir_count];
-    }else if( self.currentHeading.magneticHeading >= 225 && self.currentHeading.magneticHeading < 315 ){
-        dir = [NSHomeDirectory() stringByAppendingFormat:@"/Documents/West/point_%d",dir_count];
-    }*/
-    //git test
-    dir = [NSHomeDirectory() stringByAppendingFormat:@"/Documents/%@/%@/point_%d",dBm_set,direction_dir,dir_count];
-    //Create file
-    NSString *file = [dir stringByAppendingFormat:@"/point_data.txt"];
-    NSError *error;
-    NSString *filedata;
-    NSFileHandle *update = [NSFileHandle fileHandleForWritingAtPath:file];
-    NSData *data;
-    
-    BOOL success = [fm createDirectoryAtPath:
-                    dir withIntermediateDirectories:YES attributes:nil error:&error];
-    if (success) {
-        NSLog(@"目錄建立成功");
-    }else {
-        NSLog(@"目錄建立失敗");
-    }
-    for (int i=0; i < [self.beaconsArray count]; i++) {
-        CLBeacon *beacon = [self.beaconsArray objectAtIndex:i];
-        NSString *major = [NSString stringWithFormat:@"%@",beacon.major];
-        NSString *rssi = [NSString stringWithFormat:@"%ld",(long)beacon.rssi];
-        NSString *distance = [NSString stringWithFormat:@"%.2f",beacon.accuracy];
-        filedata = [NSString stringWithFormat:@"major= %@ , rssi= %@\n",major,rssi];
-        //filedata = [NSString stringWithFormat:@"rssi= %@\n",rssi];
-
-        NSString *strDate = [NSString stringWithFormat:@"major,rssi \n"];
-        
-        data = [strDate dataUsingEncoding:NSUTF8StringEncoding];
-    }
-    if (file_count < 31) {
-        
-        if ([fm fileExistsAtPath:file])  {
-            NSLog(@"檔案存在，寫入檔案");
-            for (int i=0; i < [self.beaconsArray count]; i++) {
-                CLBeacon *beacon = [self.beaconsArray objectAtIndex:i];
-                NSString *major = [NSString stringWithFormat:@"%@",beacon.major];
-                NSString *rssi = [NSString stringWithFormat:@"%ld",(long)beacon.rssi];
-                NSString *distance = [NSString stringWithFormat:@"%f",beacon.accuracy];
-                //filedata = [NSString stringWithFormat:@"%@    ,%@ ,%@ \n",major,rssi,distance];
-                filedata = [NSString stringWithFormat:@"%@    ,%@  \n",major,rssi];
-                //filedata = [NSString stringWithFormat:@"%@\n",rssi];
-                data = [filedata dataUsingEncoding:NSUTF8StringEncoding];
-                [update seekToEndOfFile];
-                [update writeData:data];
-            }
-            NSString *n = @"--------------------\n";
-            data = [n dataUsingEncoding:NSUTF8StringEncoding];
-            [update seekToEndOfFile];
-            [update writeData:data];
-            file_count ++;
-            
-        }else{
-            NSLog(@"檔案不存在，新增檔案並寫入");
-            success = [fm createFileAtPath:file contents:data attributes:nil];
-            if (success) {
-                NSLog(@"Create File success");
-            }else{
-                NSLog(@"Create File ERROR");
-            }
-            file_count ++;
-        }
-    }else{
-        NSLog(@"資料搜集完畢");
-        AudioServicesPlaySystemSound(kSystemSoundID_Vibrate);
-
-    }
-    [update closeFile];
-    if (file_count < 31) {
-        self.fileTextLabel.text = [NSString stringWithFormat:@"%d",file_count-1];
-    }else{
-        self.fileTextLabel.text = @"下一個點";
-    }
-    
-    
 }
 
 #pragma mark - ESTBeaconManager delegate

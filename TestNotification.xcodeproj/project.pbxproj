@@ -15,6 +15,7 @@
 		AECF160A1B0DCE3000CC83B2 /* LaunchScreen.xib in Resources */ = {isa = PBXBuildFile; fileRef = AECF16081B0DCE3000CC83B2 /* LaunchScreen.xib */; };
 		AECF16161B0DCE3000CC83B2 /* TestNotificationTests.m in Sources */ = {isa = PBXBuildFile; fileRef = AECF16151B0DCE3000CC83B2 /* TestNotificationTests.m */; };
 		AECF16201B0DCE4600CC83B2 /* EstimoteSDK.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AECF161F1B0DCE4600CC83B2 /* EstimoteSDK.framework */; };
+		CF1206C31CE9EBCB009A1ABF /* AudioToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CF1206C21CE9EBCB009A1ABF /* AudioToolbox.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -42,6 +43,7 @@
 		AECF16141B0DCE3000CC83B2 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		AECF16151B0DCE3000CC83B2 /* TestNotificationTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TestNotificationTests.m; sourceTree = "<group>"; };
 		AECF161F1B0DCE4600CC83B2 /* EstimoteSDK.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = EstimoteSDK.framework; sourceTree = "<group>"; };
+		CF1206C21CE9EBCB009A1ABF /* AudioToolbox.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AudioToolbox.framework; path = System/Library/Frameworks/AudioToolbox.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -49,6 +51,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				CF1206C31CE9EBCB009A1ABF /* AudioToolbox.framework in Frameworks */,
 				AECF16201B0DCE4600CC83B2 /* EstimoteSDK.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -66,6 +69,7 @@
 		AECF15ED1B0DCE2F00CC83B2 = {
 			isa = PBXGroup;
 			children = (
+				CF1206C21CE9EBCB009A1ABF /* AudioToolbox.framework */,
 				AECF161F1B0DCE4600CC83B2 /* EstimoteSDK.framework */,
 				AECF15F81B0DCE2F00CC83B2 /* TestNotification */,
 				AECF16121B0DCE3000CC83B2 /* TestNotificationTests */,
